@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 220" role="img" aria-labelledby="title desc">
+  <title id="title">OpenAPI Guardian</title>
+  <desc id="desc">OpenAPI Guardian logo with a gradient shield mark and wordmark.</desc>
+  <defs>
+    <linearGradient id="g" x1="30" y1="30" x2="940" y2="190" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5BFF9D"/><stop offset=".5" stop-color="#16C7E8"/><stop offset="1" stop-color="#1769FF"/>
+    </linearGradient>
+    <linearGradient id="text" x1="430" y1="50" x2="930" y2="170" gradientUnits="userSpaceOnUse"><stop stop-color="#20E6C4"/><stop offset="1" stop-color="#2C8BFF"/></linearGradient>
+  </defs>
+  <g transform="translate(12 10) scale(.39)">
+    <path d="M256 42 450 124v126c0 112-74 191-194 220C136 441 62 362 62 250V124L256 42Z" fill="#07101D" stroke="url(#g)" stroke-width="28" stroke-linejoin="round"/>
+    <path d="M173 222h176l-42 42h-57v63h-48V222h-29Z" fill="url(#g)"/>
+    <path d="m155 205 28-8 8-28 8 28 28 8-28 8-8 28-8-28-28-8Z" fill="#F4FFFC"/>
+  </g>
+  <text x="235" y="137" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="72" font-weight="760" letter-spacing="-2.5" fill="#F4F7FF">OpenAPI</text>
+  <text x="620" y="137" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="72" font-weight="760" letter-spacing="-2.5" fill="url(#text)">Guardian</text>
+  <text x="239" y="174" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="650" letter-spacing="4" fill="#91A0B8">SPEC VALIDATE  •  TEST  •  DIFF  •  SHIP SAFER</text>
+</svg>
