@@ -13,8 +13,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
       - run: npm install
       - run: npm run typecheck
-      - run: npm run build
+      - run: npm test
       - run: node dist/cli.js validate examples/old.json
+      - run: node dist/cli.js validate examples/sample.yaml
       - run: node dist/cli.js diff examples/old.json examples/new.json --format json > diff.json || test $? -eq 1
