@@ -6,6 +6,7 @@
 
 A TypeScript CLI that turns an OpenAPI description into executable checks for API implementations and semantic contract diffs for API changes.
 
+[![CI](https://github.com/dh6xxn/openapi-guardian/actions/workflows/ci.yml/badge.svg)](https://github.com/dh6xxn/openapi-guardian/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -49,7 +50,7 @@ It is intentionally **not** a Postman clone. The OpenAPI document is the source 
 - 📦 JSON output for automation
 - 🧱 Small TypeScript core designed to grow into a reusable library
 
-> **Current status:** v0.1 is an intentionally small working prototype. JSON OpenAPI documents are supported today. YAML, full `$ref` graphs, richer request validation, JUnit reporting, GitHub Actions, and deeper compatibility analysis are planned next.
+> **Current status:** v0.1 is an intentionally small working prototype. JSON OpenAPI documents are supported today. YAML, full `$ref` graphs, richer request validation, JUnit reporting, a dedicated reusable GitHub Action, and deeper compatibility analysis are planned next.
 
 ## Quick start
 
@@ -147,8 +148,11 @@ openapi-guardian/
 ├── examples/
 │   ├── old.json
 │   └── new.json
+├── tests/
+│   └── core.test.js
 └── .github/
     └── workflows/
+        └── ci.yml
 ```
 
 The long-term architecture is deliberately centered on a reusable `core` engine so the CLI and future integrations can share the same contract logic.
@@ -163,12 +167,12 @@ The long-term architecture is deliberately centered on a reusable `core` engine 
 - [ ] Request parameter and request-body validation
 - [ ] More response status-code handling
 - [ ] Better `oneOf` / `anyOf` / `allOf` support
-- [ ] Unit + integration test suite
+- [ ] Expanded unit + integration test suite
 
 ### v0.3 — CI-grade tooling
 
 - [ ] JUnit reports
-- [ ] GitHub Action
+- [ ] Dedicated GitHub Action
 - [ ] Config file (`guardian.config.ts`)
 - [ ] Parallel test execution
 - [ ] PR-friendly annotations
@@ -184,7 +188,7 @@ The long-term architecture is deliberately centered on a reusable `core` engine 
 
 ## How Guardian fits in
 
-Guardian is not trying to replace established API testing projects. Tools such as **Schemathesis** already provide powerful property-based and fuzz testing, while **Dredd** focuses on validating API implementations against API descriptions. Guardian's goal is to provide a focused, TypeScript-first developer tool with a particularly clean workflow around **contract validation + semantic breaking-change detection**.
+Guardian is not trying to replace established API testing projects. **Schemathesis** already provides powerful property-based and fuzz testing, while **Dredd** focuses on validating API implementations against API descriptions. Guardian's goal is to provide a focused, TypeScript-first developer tool with a particularly clean workflow around **contract validation + semantic breaking-change detection**.
 
 That comparison is intentional: the project should earn its place through useful developer experience and compatibility analysis, not by pretending the existing ecosystem does not exist.
 
@@ -194,8 +198,8 @@ Guardian is tested in layers:
 
 1. **Unit tests** for schema sampling, validation, and diff rules.
 2. **Integration tests** against deterministic local HTTP fixtures.
-3. **Real-world fixtures** sourced from public OpenAPI examples.
-4. **Differential testing** against established OpenAPI tooling as the engine becomes more capable.
+3. **Real-world fixtures** from public OpenAPI projects as the parser grows.
+4. **Differential testing** against established OpenAPI tooling as compatibility coverage improves.
 
 The OpenAPI Initiative is the authoritative reference for the specification; OpenAPI 3.1 documents are JSON or YAML and use JSON Schema-based Schema Objects. Guardian's implementation should therefore be conservative: if a feature is not correctly supported, it should be reported as unsupported rather than silently producing a misleading result.
 
