@@ -1,5 +1,5 @@
 {
-  "name": "openapi-guardian",
+  "name": "@dh6xxn/openapi-guardian",
   "version": "0.2.0",
   "description": "TypeScript-first OpenAPI contract testing and semantic breaking-change detection for APIs.",
   "type": "module",
@@ -40,5 +40,8 @@
   "dependencies": {
     "yaml": "^2.8.1"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
 }
