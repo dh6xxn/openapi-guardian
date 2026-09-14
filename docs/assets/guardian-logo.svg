@@ -1,18 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 220" role="img" aria-labelledby="title desc">
   <title id="title">OpenAPI Guardian</title>
-  <desc id="desc">OpenAPI Guardian logo with a gradient shield mark and wordmark.</desc>
+  <desc id="desc">OpenAPI Guardian geometric G monogram and wordmark.</desc>
   <defs>
     <linearGradient id="g" x1="30" y1="30" x2="940" y2="190" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#5BFF9D"/><stop offset=".5" stop-color="#16C7E8"/><stop offset="1" stop-color="#1769FF"/>
+      <stop stop-color="#7CFFB2"/><stop offset=".48" stop-color="#22D3EE"/><stop offset="1" stop-color="#4F7CFF"/>
     </linearGradient>
-    <linearGradient id="text" x1="430" y1="50" x2="930" y2="170" gradientUnits="userSpaceOnUse"><stop stop-color="#20E6C4"/><stop offset="1" stop-color="#2C8BFF"/></linearGradient>
+    <linearGradient id="text" x1="420" y1="55" x2="930" y2="170" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5BFFD0"/><stop offset="1" stop-color="#6D91FF"/>
+    </linearGradient>
   </defs>
-  <g transform="translate(12 10) scale(.39)">
-    <path d="M256 42 450 124v126c0 112-74 191-194 220C136 441 62 362 62 250V124L256 42Z" fill="#07101D" stroke="url(#g)" stroke-width="28" stroke-linejoin="round"/>
-    <path d="M173 222h176l-42 42h-57v63h-48V222h-29Z" fill="url(#g)"/>
-    <path d="m155 205 28-8 8-28 8 28 28 8-28 8-8 28-8-28-28-8Z" fill="#F4FFFC"/>
+  <g transform="translate(16 10)">
+    <circle cx="100" cy="100" r="84" fill="#07101D" stroke="url(#g)" stroke-width="9"/>
+    <path d="M143 61c-12-12-28-18-47-18-34 0-62 27-62 62s28 62 62 62c21 0 40-8 53-22v-38H96v23h28c-7 9-16 13-28 13-22 0-39-17-39-38s17-38 39-38c11 0 20 4 28 11l19-17Z" fill="#F3FFF9"/>
+    <path d="M106 98h51v18h-51z" fill="url(#g)"/>
+    <circle cx="156" cy="40" r="5" fill="#7CFFB2"/>
   </g>
-  <text x="235" y="137" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="72" font-weight="760" letter-spacing="-2.5" fill="#F4F7FF">OpenAPI</text>
-  <text x="620" y="137" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="72" font-weight="760" letter-spacing="-2.5" fill="url(#text)">Guardian</text>
-  <text x="239" y="174" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="650" letter-spacing="4" fill="#91A0B8">SPEC VALIDATE  •  TEST  •  DIFF  •  SHIP SAFER</text>
+  <text x="238" y="116" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="70" font-weight="760" letter-spacing="-2.5" fill="#F4F7FF">OpenAPI</text>
+  <text x="623" y="116" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="70" font-weight="760" letter-spacing="-2.5" fill="url(#text)">Guardian</text>
+  <text x="241" y="153" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="700" letter-spacing="3.5" fill="#91A0B8">CONTRACTS  •  TESTS  •  COMPATIBILITY</text>
 </svg>
