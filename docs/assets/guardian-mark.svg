@@ -1,18 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
-  <title id="title">OpenAPI Guardian mark</title>
-  <desc id="desc">A gradient shield containing a stylized G and sparkle.</desc>
+  <title id="title">OpenAPI Guardian</title>
+  <desc id="desc">A geometric G monogram enclosed by a protective orbital ring.</desc>
   <defs>
-    <linearGradient id="g" x1="90" y1="80" x2="430" y2="440" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#5BFF9D"/>
-      <stop offset=".48" stop-color="#16C7E8"/>
-      <stop offset="1" stop-color="#1769FF"/>
+    <linearGradient id="g" x1="92" y1="80" x2="426" y2="432" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7CFFB2"/>
+      <stop offset=".48" stop-color="#22D3EE"/>
+      <stop offset="1" stop-color="#4F7CFF"/>
     </linearGradient>
-    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="12" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
+    <linearGradient id="g2" x1="130" y1="120" x2="390" y2="390" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset=".45" stop-color="#BFFFE1"/>
+      <stop offset="1" stop-color="#8BE8FF"/>
+    </linearGradient>
   </defs>
-  <path d="M256 42 450 124v126c0 112-74 191-194 220C136 441 62 362 62 250V124L256 42Z" fill="#07101D" stroke="url(#g)" stroke-width="28" stroke-linejoin="round" filter="url(#glow)"/>
-  <path d="M173 222h176l-42 42h-57v63h-48V222h-29Z" fill="url(#g)"/>
-  <path d="m155 205 28-8 8-28 8 28 28 8-28 8-8 28-8-28-28-8Z" fill="#F4FFFC"/>
+  <circle cx="256" cy="256" r="214" fill="#07101D" stroke="url(#g)" stroke-width="20"/>
+  <path d="M366 157c-30-29-67-43-111-43-79 0-143 63-143 142s64 142 143 142c49 0 91-18 121-51v-86H256v53h65c-16 20-38 31-66 31-50 0-89-39-89-89s39-89 89-89c25 0 46 8 64 25l47-35Z" fill="url(#g2)"/>
+  <path d="M270 252h116v42H270z" fill="url(#g)"/>
+  <circle cx="397" cy="142" r="10" fill="#7CFFB2"/>
 </svg>
