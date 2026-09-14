@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { sample, validateSchema } from '../dist/core/schema.js';
 import { diffSpecs } from '../dist/core/diff.js';
+import { loadSpec, resolveLocalRef, validateBasicSpec } from '../dist/core/spec.js';
 
 const base = {
   openapi: '3.0.3',
@@ -32,4 +33,24 @@ test('detects a new required request property as breaking', () => {
 
   const changes = diffSpecs(oldDoc, newDoc);
   assert.equal(changes.some((change) => change.type === 'breaking' && change.message.includes("'email'")), true);
+});
+
+test('resolves JSON Pointer local references', () => {
+  const doc = {
+    ...base,
+    components: { schemas: { User: { type: 'object', properties: { id: { type: 'integer' } } } } },
+  };
+  assert.deepEqual(resolveLocalRef(doc, { $ref: '#/components/schemas/User' }), doc.components.schemas.User);
+});
+
+test('rejects unsupported OpenAPI versions', () => {
+  assert.deepEqual(validateBasicSpec({ ...base, openapi: '2.0.0' }), [
+    '`openapi` must be an OpenAPI 3.0.x or 3.1.x version.',
+  ]);
+});
+
+test('loads YAML OpenAPI documents', async () => {
+  const spec = await loadSpec('examples/sample.yaml');
+  assert.equal(spec.openapi, '3.0.3');
+  assert.equal(spec.info.title, 'Guardian YAML Fixture');
 });
