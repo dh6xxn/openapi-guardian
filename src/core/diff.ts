@@ -1,4 +1,5 @@
 import type { DiffChange, OpenApiDocument } from './types.js';
+import { resolveLocalRef } from './spec.js';
 
 const METHODS = ['get', 'post', 'put', 'patch', 'delete', 'options', 'head', 'trace'];
 
@@ -8,6 +9,21 @@ function schemaDiff(oldS: any, newS: any, location: string): DiffChange[] {
 
   if (oldS.type && newS.type && oldS.type !== newS.type) {
     out.push({ path: location, type: 'breaking', message: `Schema type changed from ${oldS.type} to ${newS.type}.` });
+  }
+
+  if (oldS.minimum !== undefined && newS.minimum !== undefined && newS.minimum > oldS.minimum) {
+    out.push({ path: location, type: 'breaking', message: `Minimum increased from ${oldS.minimum} to ${newS.minimum}.` });
+  }
+  if (oldS.maximum !== undefined && newS.maximum !== undefined && newS.maximum < oldS.maximum) {
+    out.push({ path: location, type: 'breaking', message: `Maximum decreased from ${oldS.maximum} to ${newS.maximum}.` });
+  }
+
+  if (Array.isArray(oldS.enum) && Array.isArray(newS.enum)) {
+    for (const value of oldS.enum) {
+      if (!newS.enum.includes(value)) {
+        out.push({ path: location, type: 'breaking', message: `Enum value '${String(value)}' was removed.` });
+      }
+    }
   }
 
   const oldReq = new Set(oldS.required ?? []);
@@ -32,14 +48,26 @@ function schemaDiff(oldS: any, newS: any, location: string): DiffChange[] {
       out.push(...schemaDiff(oldProperties[key], newProperties[key], `${location}.${key}`));
     }
   }
+
+  for (const key of Object.keys(newProperties)) {
+    if (!(key in oldProperties) && !newReq.has(key)) {
+      out.push({ path: `${location}.${key}`, type: 'non-breaking', message: `Optional property '${key}' was added.` });
+    }
+  }
   return out;
 }
 
 function resolve(doc: OpenApiDocument, schema: any): any {
-  if (schema?.$ref?.startsWith('#/components/schemas/')) {
-    return doc.components?.schemas?.[schema.$ref.split('/').pop()!];
+  return resolveLocalRef(doc, schema);
+}
+
+function responseSchema(operation: any, statusCodes: string[], doc: OpenApiDocument): any {
+  for (const status of statusCodes) {
+    const response = operation.responses?.[status];
+    const schema = response?.content?.['application/json']?.schema;
+    if (schema) return resolve(doc, schema);
   }
-  return schema;
+  return undefined;
 }
 
 export function diffSpecs(oldDoc: OpenApiDocument, newDoc: OpenApiDocument): DiffChange[] {
@@ -77,8 +105,8 @@ export function diffSpecs(oldDoc: OpenApiDocument, newDoc: OpenApiDocument): Dif
       const newBody = resolve(newDoc, newOperation.requestBody?.content?.['application/json']?.schema);
       out.push(...schemaDiff(oldBody, newBody, `${method.toUpperCase()} ${path} request`));
 
-      const oldResponse = resolve(oldDoc, oldOperation.responses?.['200']?.content?.['application/json']?.schema);
-      const newResponse = resolve(newDoc, newOperation.responses?.['200']?.content?.['application/json']?.schema);
+      const oldResponse = responseSchema(oldOperation, ['200', '201', '202', '204'], oldDoc);
+      const newResponse = responseSchema(newOperation, ['200', '201', '202', '204'], newDoc);
       out.push(...schemaDiff(oldResponse, newResponse, `${method.toUpperCase()} ${path} response`));
     }
   }
