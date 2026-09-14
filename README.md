@@ -4,62 +4,66 @@
 
 **Contract-test your API. Catch breaking changes before they ship.**
 
-A TypeScript CLI that turns an OpenAPI description into executable checks for API implementations and semantic contract diffs for API changes.
+A TypeScript-first CLI for validating OpenAPI contracts, testing live API implementations, and detecting semantic compatibility changes.
 
 [![CI](https://github.com/dh6xxn/openapi-guardian/actions/workflows/ci.yml/badge.svg)](https://github.com/dh6xxn/openapi-guardian/actions/workflows/ci.yml)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 </div>
 
 ---
 
-## Why Guardian?
+## The problem
 
-OpenAPI is supposed to describe the contract between an API and its consumers. The problem is that documentation can drift from reality, and an apparently small schema change can break clients.
+An OpenAPI document is a promise between an API and its consumers. In real projects, implementations drift from that promise and apparently harmless contract edits can break clients.
 
-Guardian is built around one idea:
+Guardian turns that contract into executable developer checks:
 
 ```text
-                 OpenAPI contract
-                        │
-          ┌─────────────┴─────────────┐
-          ▼                           ▼
-   Running API                  New API spec
-          │                           │
-          ▼                           ▼
-   Contract tests              Semantic diff
-          │                           │
-          └─────────────┬─────────────┘
-                        ▼
-                 Developer signal
-                 PASS / WARN / FAIL
+                         OpenAPI contract
+                                │
+                 ┌──────────────┴──────────────┐
+                 │                             │
+                 ▼                             ▼
+            Running API                    New API spec
+                 │                             │
+                 ▼                             ▼
+         Contract testing                Semantic diff
+                 │                             │
+                 └──────────────┬──────────────┘
+                                ▼
+                    PASS  ·  WARN  ·  FAIL
 ```
 
-It is intentionally **not** a Postman clone. The OpenAPI document is the source of truth, and Guardian derives checks from it.
+**Guardian is not a Postman clone.** The OpenAPI contract drives the checks.
 
-## Features
+## What works today
 
-- 🔎 Validate basic OpenAPI 3.0.x / 3.1.x structure
-- 🧪 Generate representative requests from OpenAPI schemas
-- 🌐 Test a live API from the command line
-- 🧩 Validate response bodies against documented schemas
-- 🔀 Detect semantic breaking changes between two specs
-- 🚦 CI-friendly exit codes
+- 🔎 OpenAPI 3.0.x / 3.1.x JSON and YAML loading
+- 🧩 Local `$ref` resolution using JSON Pointer
+- 🧪 Representative request generation from schemas
+- 🌐 Live API contract testing
+- ✅ Response status and JSON schema checks
+- 🔀 Semantic contract diffs
+- 🚨 Breaking-change detection for endpoints, required fields, types, bounds, and enum removals
 - 📦 JSON output for automation
-- 🧱 Small TypeScript core designed to grow into a reusable library
+- 🚦 CI-friendly exit codes
+- 🧱 Small TypeScript core that can evolve into a reusable library
 
-> **Current status:** v0.1 is an intentionally small working prototype. JSON OpenAPI documents are supported today. YAML, full `$ref` graphs, richer request validation, JUnit reporting, a dedicated reusable GitHub Action, and deeper compatibility analysis are planned next.
+> **Status: early-stage, functional developer tool.** Guardian is useful for focused contract checks today, but it is not positioned as a replacement for mature API testing/fuzzing platforms yet.
+
+---
 
 ## Quick start
 
 ### Requirements
 
 - Node.js 20+
-- An OpenAPI 3.0.x or 3.1.x JSON document
+- An OpenAPI 3.0.x or 3.1.x document in JSON, YAML, or YML
 
-### Run from source
+### Install from source
 
 ```bash
 npm install
@@ -69,30 +73,30 @@ npm run build
 ### Validate a contract
 
 ```bash
-node dist/cli.js validate examples/old.json
+node dist/cli.js validate examples/sample.yaml
 ```
 
 ```text
 ✔ Valid OpenAPI 3.0.3
-  Demo API v1.0.0
-  2 operations
+  Guardian YAML Fixture v1.0.0
+  1 operation
 ```
 
 ### Test a running API
 
 ```bash
-node dist/cli.js test examples/old.json --base-url http://localhost:3000
+node dist/cli.js test openapi.yaml --base-url http://localhost:3000
 ```
 
-Guardian derives a request from the operation, sends it, checks the status code, and validates a JSON response when a response schema is present.
+Guardian derives representative requests from the contract, sends them to the running API, checks the documented status, and validates JSON responses when schemas are present.
 
 ### Detect breaking changes
 
 ```bash
-node dist/cli.js diff examples/old.json examples/new.json --fail-on breaking
+node dist/cli.js diff old.json new.json --fail-on breaking
 ```
 
-Example output:
+Example:
 
 ```text
 API Contract Diff
@@ -105,14 +109,16 @@ API Contract Diff
 2 breaking, 0 non-breaking, 1 warning
 ```
 
-The non-zero exit code makes the command usable as a CI gate.
+A breaking result returns a non-zero exit code, making the command suitable as a CI gate.
 
 ### Machine-readable output
 
 ```bash
-node dist/cli.js diff examples/old.json examples/new.json --format json
-node dist/cli.js test examples/old.json --base-url http://localhost:3000 --format json
+node dist/cli.js diff old.json new.json --format json
+node dist/cli.js test openapi.yaml --base-url http://localhost:3000 --format json
 ```
+
+---
 
 ## CLI
 
@@ -131,52 +137,61 @@ node dist/cli.js test examples/old.json --base-url http://localhost:3000 --forma
 | `2` | Invalid command usage |
 | `3` | Invalid specification or runtime error |
 
-## Architecture
+---
 
-Guardian keeps the CLI thin and puts behavior in a small core:
+## Why the architecture matters
+
+The CLI is intentionally thin. Core behavior lives under `src/core`, so the same contract engine can eventually power the CLI, a GitHub Action, or a reusable npm API.
 
 ```text
-openapi-guardian/
-├── src/
-│   ├── cli.ts                 # CLI entrypoint
-│   └── core/
-│       ├── spec.ts            # loading + basic spec validation
-│       ├── schema.ts          # sample data + response validation
-│       ├── tester.ts          # live contract execution
-│       ├── diff.ts            # semantic compatibility checks
-│       └── types.ts            # shared result types
-├── examples/
-│   ├── old.json
-│   └── new.json
-├── tests/
-│   └── core.test.js
-└── .github/
-    └── workflows/
-        └── ci.yml
+src/
+├── cli.ts
+└── core/
+    ├── spec.ts       # loading, validation, local refs
+    ├── schema.ts     # sampling + response validation
+    ├── tester.ts     # live HTTP execution
+    ├── diff.ts       # compatibility analysis
+    └── types.ts      # shared result types
 ```
 
-The long-term architecture is deliberately centered on a reusable `core` engine so the CLI and future integrations can share the same contract logic.
+The current implementation keeps its dependency surface deliberately small: the only runtime dependency added for v0.2 is `yaml` for standards-friendly YAML parsing.
+
+---
+
+## Testing philosophy
+
+Guardian is tested in layers:
+
+1. **Unit tests** for schema sampling, validation, references, and compatibility rules.
+2. **Integration tests** against deterministic local HTTP fixtures.
+3. **Representative OpenAPI fixtures** in both JSON and YAML.
+4. **Real-world compatibility fixtures** as the parser and schema engine mature.
+5. **Differential testing** against established OpenAPI tooling before claiming broad compatibility.
+
+We explicitly prefer a conservative failure over silently producing a misleading contract result.
+
+---
 
 ## Roadmap
 
-### v0.2 — Make the engine real
+### v0.2 — OpenAPI foundations
 
-- [ ] YAML support
-- [ ] Robust `$ref` resolution
-- [ ] OpenAPI 3.0 / 3.1 schema validation
+- [x] JSON and YAML support
+- [x] Local `$ref` resolution
+- [x] Basic OpenAPI 3.0 / 3.1 validation
+- [x] Schema-based request generation
+- [x] Expanded compatibility rules
+
+### v0.3 — CI-grade contract testing
+
+- [ ] Full JSON Schema 2020-12 validation
+- [ ] Robust recursive `$ref` graphs
 - [ ] Request parameter and request-body validation
-- [ ] More response status-code handling
-- [ ] Better `oneOf` / `anyOf` / `allOf` support
-- [ ] Expanded unit + integration test suite
-
-### v0.3 — CI-grade tooling
-
+- [ ] All documented response status codes
 - [ ] JUnit reports
-- [ ] Dedicated GitHub Action
 - [ ] Config file (`guardian.config.ts`)
-- [ ] Parallel test execution
-- [ ] PR-friendly annotations
-- [ ] Stronger breaking-change rules
+- [ ] Dedicated GitHub Action
+- [ ] Parallel execution
 
 ### v0.4 — Advanced API testing
 
@@ -184,24 +199,17 @@ The long-term architecture is deliberately centered on a reusable `core` engine 
 - [ ] Boundary and invalid-input generation
 - [ ] Property-based / fuzz testing
 - [ ] Stateful API workflows
-- [ ] Request authentication schemes
+- [ ] Authentication/security schemes
+
+---
 
 ## How Guardian fits in
 
-Guardian is not trying to replace established API testing projects. **Schemathesis** already provides powerful property-based and fuzz testing, while **Dredd** focuses on validating API implementations against API descriptions. Guardian's goal is to provide a focused, TypeScript-first developer tool with a particularly clean workflow around **contract validation + semantic breaking-change detection**.
+Guardian is deliberately focused. **Schemathesis** provides powerful property-based and fuzz testing for APIs, while **Dredd** focuses on validating API implementations against API descriptions. Guardian's current goal is a clean, TypeScript-first workflow around **contract validation and semantic breaking-change detection**.
 
-That comparison is intentional: the project should earn its place through useful developer experience and compatibility analysis, not by pretending the existing ecosystem does not exist.
+That comparison is intentional. The project should earn its place through developer experience and compatibility analysis, not by pretending the existing ecosystem does not exist.
 
-## Testing philosophy
-
-Guardian is tested in layers:
-
-1. **Unit tests** for schema sampling, validation, and diff rules.
-2. **Integration tests** against deterministic local HTTP fixtures.
-3. **Real-world fixtures** from public OpenAPI projects as the parser grows.
-4. **Differential testing** against established OpenAPI tooling as compatibility coverage improves.
-
-The OpenAPI Initiative is the authoritative reference for the specification; OpenAPI 3.1 documents are JSON or YAML and use JSON Schema-based Schema Objects. Guardian's implementation should therefore be conservative: if a feature is not correctly supported, it should be reported as unsupported rather than silently producing a misleading result.
+---
 
 ## Development
 
@@ -211,11 +219,7 @@ npm run build
 npm test
 ```
 
-The project intentionally has a tiny dependency surface in v0.1. That makes the core easy to inspect and keeps the first version suitable for learning, experimentation, and rapid iteration.
-
-## Contributing
-
-Issues and pull requests are welcome. Before adding a feature, prefer a small reproducible fixture and a focused test case. Compatibility behavior should be documented with an example whenever possible.
+Pull requests should include a reproducible fixture and a focused regression test for compatibility behavior.
 
 ## License
 
