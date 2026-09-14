@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">OpenAPI Guardian mark</title>
+  <desc id="desc">A gradient shield containing a stylized G and sparkle.</desc>
+  <defs>
+    <linearGradient id="g" x1="90" y1="80" x2="430" y2="440" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5BFF9D"/>
+      <stop offset=".48" stop-color="#16C7E8"/>
+      <stop offset="1" stop-color="#1769FF"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="12" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <path d="M256 42 450 124v126c0 112-74 191-194 220C136 441 62 362 62 250V124L256 42Z" fill="#07101D" stroke="url(#g)" stroke-width="28" stroke-linejoin="round" filter="url(#glow)"/>
+  <path d="M173 222h176l-42 42h-57v63h-48V222h-29Z" fill="url(#g)"/>
+  <path d="m155 205 28-8 8-28 8 28 28 8-28 8-8 28-8-28-28-8Z" fill="#F4FFFC"/>
+</svg>
