@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="OpenAPI Guardian — TypeScript-first API contract testing and semantic breaking-change detection.">
+  <meta name="theme-color" content="#070a12">
+  <title>OpenAPI Guardian — API contracts, guarded</title>
+  <style>
+    :root{--bg:#070a12;--panel:#0d1220;--panel2:#111827;--text:#eef2ff;--muted:#9aa6bf;--line:#202a3d;--accent:#8b5cf6;--accent2:#22d3ee;--ok:#34d399;--danger:#fb7185;--max:1120px}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 75% -10%,rgba(139,92,246,.18),transparent 34%),radial-gradient(circle at 15% 15%,rgba(34,211,238,.10),transparent 28%),var(--bg);color:var(--text);font:16px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:inherit;text-decoration:none}.wrap{max-width:var(--max);margin:auto;padding:0 24px}.nav{height:76px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}.brand{display:flex;align-items:center;gap:11px;font-weight:750;letter-spacing:-.02em}.mark{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 0 30px rgba(139,92,246,.28);font-weight:900;color:#fff}.navlinks{display:flex;gap:24px;color:var(--muted);font-size:14px}.navlinks a:hover{color:#fff}.hero{padding:92px 0 70px;text-align:center}.badge{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(139,92,246,.35);background:rgba(139,92,246,.08);color:#c4b5fd;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:650}.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 12px var(--ok)}h1{font-size:clamp(48px,8vw,84px);line-height:1.02;letter-spacing:-.065em;margin:24px auto 22px;max-width:920px}h1 span{background:linear-gradient(100deg,#fff 25%,#c4b5fd 60%,#67e8f9);-webkit-background-clip:text;background-clip:text;color:transparent}.lead{max-width:720px;margin:auto;color:var(--muted);font-size:19px}.actions{display:flex;justify-content:center;gap:12px;margin:32px 0 50px;flex-wrap:wrap}.btn{padding:11px 18px;border-radius:10px;border:1px solid var(--line);background:#101727;font-weight:700;font-size:14px}.btn.primary{background:linear-gradient(135deg,#7c3aed,#0891b2);border-color:transparent;box-shadow:0 12px 30px rgba(124,58,237,.2)}.terminal{max-width:860px;margin:auto;text-align:left;border:1px solid #273249;background:#080c15;border-radius:14px;overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,.38)}.termbar{height:42px;border-bottom:1px solid #1c2638;display:flex;align-items:center;gap:7px;padding:0 14px}.circle{width:9px;height:9px;border-radius:50%;background:#334155}.termtitle{margin-left:8px;color:#66748e;font-size:12px}.code{padding:22px 24px;color:#dbeafe;font:14px/1.85 ui-monospace,SFMono-Regular,Menlo,monospace;overflow:auto}.prompt{color:#67e8f9}.good{color:#6ee7b7}.bad{color:#fb7185}.dim{color:#64748b}.section{padding:82px 0}.eyebrow{color:#a78bfa;text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-weight:800}h2{font-size:38px;letter-spacing:-.04em;line-height:1.1;margin:10px 0 14px}.sub{color:var(--muted);max-width:680px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px}.card{background:linear-gradient(180deg,rgba(17,24,39,.8),rgba(13,18,32,.8));border:1px solid var(--line);border-radius:14px;padding:24px}.icon{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:#151d30;margin-bottom:18px;color:#c4b5fd;font-weight:900}.card h3{margin:0 0 8px;font-size:18px}.card p{margin:0;color:var(--muted);font-size:14px}.split{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}.panel{border:1px solid var(--line);border-radius:14px;background:rgba(13,18,32,.72);padding:24px}.command{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid #1b2536}.command:last-child{border-bottom:0}.cmd{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;color:#c4b5fd;min-width:230px}.desc{color:var(--muted);font-size:14px}.flow{display:flex;flex-direction:column;gap:10px;margin-top:24px}.flow div{border:1px solid var(--line);border-radius:10px;padding:12px 15px;background:#0b1020;font:13px ui-monospace,monospace;color:#cbd5e1}.flow .arrow{border:0;background:none;text-align:center;padding:0;color:#64748b}.cta{margin:30px 0 70px;padding:46px;border:1px solid #29354d;border-radius:18px;background:radial-gradient(circle at 85% 0%,rgba(34,211,238,.12),transparent 30%),radial-gradient(circle at 0% 100%,rgba(139,92,246,.14),transparent 35%),#0c1220;text-align:center}.cta p{color:var(--muted)}footer{border-top:1px solid rgba(255,255,255,.06);padding:28px 0 44px;color:#64748b;font-size:13px;display:flex;justify-content:space-between;gap:20px}@media(max-width:800px){.navlinks{display:none}.grid,.split{grid-template-columns:1fr}.hero{padding-top:62px}h1{font-size:52px}.section{padding:62px 0}.cmd{min-width:0}.command{flex-direction:column;gap:4px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav">
+      <a class="brand" href="#top"><span class="mark">G</span> OpenAPI Guardian</a>
+      <div class="navlinks"><a href="#features">Features</a><a href="#cli">CLI</a><a href="#architecture">Architecture</a><a href="https://github.com/dh6xxn/openapi-guardian">GitHub ↗</a></div>
+    </nav>
+
+    <main id="top">
+      <section class="hero">
+        <div class="badge"><span class="dot"></span> v0.2.0 · Open source</div>
+        <h1><span>Ship APIs without breaking the contract.</span></h1>
+        <p class="lead">TypeScript-first OpenAPI contract testing and semantic breaking-change detection for modern API teams.</p>
+        <div class="actions"><a class="btn primary" href="https://github.com/dh6xxn/openapi-guardian">View on GitHub</a><a class="btn" href="#cli">Explore the CLI</a></div>
+        <div class="terminal">
+          <div class="termbar"><span class="circle"></span><span class="circle"></span><span class="circle"></span><span class="termtitle">terminal</span></div>
+          <div class="code"><div><span class="prompt">$</span> guardian test openapi.yaml --base-url http://localhost:3000</div><div class="good">✔ GET    /users</div><div class="good">✔ POST   /users</div><div class="good">✔ GET    /users/{id}</div><div class="bad">✖ DELETE /users/{id}</div><br><div class="dim">Contract violation: response does not match the OpenAPI schema.</div></div>
+        </div>
+      </section>
+
+      <section class="section" id="features">
+        <div class="eyebrow">Built for developers</div><h2>Contracts become guardrails.</h2><p class="sub">Guardian turns your OpenAPI document into an executable contract and gives your CI pipeline a clear signal when an API drifts.</p>
+        <div class="grid">
+          <article class="card"><div class="icon">✓</div><h3>Contract testing</h3><p>Generate requests from your OpenAPI operations, call the running API, and validate documented responses.</p></article>
+          <article class="card"><div class="icon">Δ</div><h3>Semantic diffing</h3><p>Compare API versions by meaning—not YAML line changes—and classify compatibility-impacting changes.</p></article>
+          <article class="card"><div class="icon">CI</div><h3>CI ready</h3><p>Use deterministic exit codes and machine-readable output to make contract checks part of your development pipeline.</p></article>
+        </div>
+      </section>
+
+      <section class="section" id="cli">
+        <div class="eyebrow">Simple interface</div><h2>One CLI. Three core workflows.</h2>
+        <div class="panel" style="margin-top:28px">
+          <div class="command"><div class="cmd">guardian validate spec.yaml</div><div class="desc">Validate and inspect an OpenAPI document.</div></div>
+          <div class="command"><div class="cmd">guardian test spec.yaml --base-url …</div><div class="desc">Run contract tests against a live API.</div></div>
+          <div class="command"><div class="cmd">guardian diff old.yaml new.yaml</div><div class="desc">Find breaking and non-breaking contract changes.</div></div>
+        </div>
+      </section>
+
+      <section class="section" id="architecture">
+        <div class="eyebrow">Architecture</div><h2>Core engine, reusable everywhere.</h2><p class="sub">The CLI is only the interface. Guardian is structured around a reusable core so the same contract engine can power local development, CI, and future integrations.</p>
+        <div class="split">
+          <div class="flow"><div>OpenAPI JSON / YAML</div><div class="arrow">↓</div><div>Parser + $ref resolver</div><div class="arrow">↓</div><div>Contract / Diff Engine</div><div class="arrow">↓</div><div>Results + reporters</div></div>
+          <div class="panel"><h3 style="margin-top:0">Designed to grow</h3><p class="sub">The roadmap includes deeper JSON Schema validation, richer test generation, negative testing, fuzzing, and native GitHub workflows—without turning the tool into another API client.</p><p class="sub">Guardian is intentionally early-stage: transparent about its current scope, with a foundation built for serious developer tooling.</p></div>
+        </div>
+      </section>
+
+      <section class="cta"><div class="eyebrow">Open source</div><h2>Build with us.</h2><p>Fork the repository, open an issue, or send a pull request. Contributions are welcome.</p><div class="actions" style="margin-bottom:0"><a class="btn primary" href="https://github.com/dh6xxn/openapi-guardian">Contribute on GitHub ↗</a></div></section>
+    </main>
+
+    <footer><span>© 2026 OpenAPI Guardian</span><span>MIT licensed · Built with TypeScript</span></footer>
+  </div>
+</body>
+</html>
