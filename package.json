@@ -1,0 +1,14 @@
+{
+  "name": "openapi-guardian",
+  "version": "0.1.0",
+  "description": "A TypeScript CLI for OpenAPI contract testing and breaking-change detection.",
+  "type": "module",
+  "bin": { "guardian": "dist/cli.js" },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=20" },
+  "license": "MIT"
+}
