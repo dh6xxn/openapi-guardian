@@ -11,31 +11,56 @@ function resolve(doc: OpenApiDocument, schema: any): any {
 }
 
 function expectedStatus(op: any): number | undefined {
-  const statuses = Object.keys(op.responses ?? {})
-    .filter((k) => /^\d{3}$/.test(k))
+  return Object.keys(op.responses ?? {})
+    .filter((key) => /^\d{3}$/.test(key))
     .map(Number)
-    .sort();
-  return statuses[0];
+    .sort((a, b) => a - b)[0];
 }
 
-function replaceParams(path: string, op: any): string {
+function parametersFor(item: any, op: any): any[] {
+  return [...(item?.parameters ?? []), ...(op?.parameters ?? [])];
+}
+
+function replacePathParams(path: string, parameters: any[]): string {
   return path.replace(/\{([^}]+)\}/g, (_, name) => {
-    const p = (op.parameters ?? []).find((x: any) => x.in === 'path' && x.name === name);
-    return encodeURIComponent(String(sample(p?.schema ?? { type: 'string' })));
+    const parameter = parameters.find((item) => item.in === 'path' && item.name === name);
+    return encodeURIComponent(String(sample(parameter?.schema ?? { type: 'string' })));
   });
+}
+
+function addQueryAndHeaders(url: URL, parameters: any[], headers: Record<string, string>) {
+  for (const parameter of parameters) {
+    const value = sample(parameter.schema ?? { type: 'string' });
+    if (value === undefined) continue;
+    if (parameter.in === 'query') url.searchParams.set(parameter.name, String(value));
+    if (parameter.in === 'header') headers[parameter.name] = String(value);
+  }
+}
+
+function firstJsonSchema(content: any): any {
+  if (!content || typeof content !== 'object') return undefined;
+  const json = content['application/json'] ?? content[Object.keys(content)[0]];
+  return json?.schema;
 }
 
 export async function testSpec(doc: OpenApiDocument, baseUrl: string): Promise<OperationResult[]> {
   const results: OperationResult[] = [];
+
   for (const [path, item] of Object.entries(doc.paths ?? {})) {
     for (const method of METHODS) {
       const op: any = (item as any)?.[method];
       if (!op) continue;
 
-      const target = new URL(replaceParams(path, op), baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
+      const parameters = parametersFor(item, op);
+      const target = new URL(
+        replacePathParams(path, parameters),
+        baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`,
+      );
       const headers: Record<string, string> = { accept: 'application/json' };
+      addQueryAndHeaders(target, parameters, headers);
+
       const init: RequestInit = { method: method.toUpperCase(), headers };
-      const bodySchema = resolve(doc, op.requestBody?.content?.['application/json']?.schema);
+      const bodySchema = resolve(doc, firstJsonSchema(op.requestBody?.content));
 
       if (bodySchema && !['GET', 'HEAD'].includes(method.toUpperCase())) {
         headers['content-type'] = 'application/json';
@@ -44,6 +69,7 @@ export async function testSpec(doc: OpenApiDocument, baseUrl: string): Promise<O
 
       const errors: string[] = [];
       const expected = expectedStatus(op);
+
       try {
         const response = await fetch(target, init);
         if (expected && response.status !== expected) {
@@ -51,7 +77,8 @@ export async function testSpec(doc: OpenApiDocument, baseUrl: string): Promise<O
         }
 
         const responseDef = op.responses?.[String(response.status)] ?? op.responses?.default;
-        const responseSchema = resolve(doc, responseDef?.content?.['application/json']?.schema);
+        const responseSchema = resolve(doc, firstJsonSchema(responseDef?.content));
+
         if (responseSchema && response.status >= 200 && response.status < 300) {
           const text = await response.text();
           let body: any;
@@ -82,5 +109,6 @@ export async function testSpec(doc: OpenApiDocument, baseUrl: string): Promise<O
       }
     }
   }
+
   return results;
 }
