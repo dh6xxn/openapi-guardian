@@ -4,11 +4,11 @@ import { diffSpecs } from './core/diff.js';
 import { testSpec } from './core/tester.js';
 
 function help() {
-  console.log(`OpenAPI Guardian v0.1.0
+  console.log(`OpenAPI Guardian v0.3.0
 
 Commands:
-  guardian validate <spec.json>
-  guardian test <spec.json> --base-url <url> [--format terminal|json]
+  guardian validate <spec.json|spec.yaml>
+  guardian test <spec.json|spec.yaml> --base-url <url> [--format terminal|json]
   guardian diff <old.json> <new.json> [--format terminal|json] [--fail-on breaking|any]`);
 }
 
@@ -43,9 +43,9 @@ try {
     if (arg('--format') === 'json') {
       console.log(JSON.stringify({ results }, null, 2));
     } else {
-      console.log('\nOpenAPI Contract Guardian\n');
+      console.log('\nOpenAPI Guardian\n');
       for (const result of results) {
-        console.log(`${result.status === 'passed' ? '✔' : '✖'} ${result.method.padEnd(6)} ${result.path}${result.statusCode ? ` (${result.statusCode})` : ''}${result.errors.length ? `\n    ${result.errors.join('\n    ')}` : ''}`);
+        console.log(`${result.status === 'passed' ? '✔' : '✖'} ${result.method.padEnd(7)} ${result.path}${result.statusCode ? ` (${result.statusCode})` : ''}${result.errors.length ? `\n    ${result.errors.join('\n    ')}` : ''}`);
       }
       const failed = results.filter((result) => result.status === 'failed').length;
       console.log(`\n${results.length} operations tested: ${results.length - failed} passed, ${failed} failed`);
