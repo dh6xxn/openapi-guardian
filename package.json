@@ -1,47 +1,17 @@
 {
   "name": "@dh6xxn/openapi-guardian",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "TypeScript-first OpenAPI contract testing and semantic breaking-change detection for APIs.",
   "type": "module",
-  "bin": {
-    "guardian": "dist/cli.js"
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/dh6xxn/openapi-guardian.git"
-  },
+  "bin": { "guardian": "dist/cli.js" },
+  "files": ["dist", "README.md", "LICENSE"],
+  "repository": { "type": "git", "url": "https://github.com/dh6xxn/openapi-guardian.git" },
   "homepage": "https://github.com/dh6xxn/openapi-guardian",
-  "bugs": {
-    "url": "https://github.com/dh6xxn/openapi-guardian/issues"
-  },
-  "keywords": [
-    "openapi",
-    "api",
-    "contract-testing",
-    "api-testing",
-    "cli",
-    "typescript",
-    "breaking-changes",
-    "developer-tools"
-  ],
-  "scripts": {
-    "build": "tsc",
-    "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --test"
-  },
-  "engines": {
-    "node": ">=20"
-  },
-  "dependencies": {
-    "yaml": "^2.8.1"
-  },
+  "bugs": { "url": "https://github.com/dh6xxn/openapi-guardian/issues" },
+  "keywords": ["openapi", "api", "contract-testing", "api-testing", "cli", "typescript", "breaking-changes", "developer-tools"],
+  "scripts": { "build": "tsc", "typecheck": "tsc --noEmit", "test": "npm run build && node --test" },
+  "engines": { "node": ">=20" },
+  "dependencies": { "yaml": "^2.8.1" },
   "license": "MIT",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
-  }
+  "publishConfig": { "registry": "https://npm.pkg.github.com" }
 }

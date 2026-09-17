@@ -2,24 +2,30 @@
 
 All notable changes to OpenAPI Guardian are documented here.
 
-## [0.2.0] — 2026-09-14
+## [0.3.0] - 2026-09-18
 
 ### Added
 
-- OpenAPI JSON and YAML input support.
-- Local `$ref` resolution.
-- Semantic API contract diffing.
-- Breaking-change detection for common schema and operation changes.
-- JSON output for automation and CI workflows.
-- Contributor documentation and GitHub issue/PR templates.
-- Automated GitHub Release and GitHub Packages workflow for version tags.
+- Expanded live API testing across all documented OpenAPI operations.
+- Path-level and operation-level parameter handling.
+- Automatic query parameter generation from OpenAPI schemas.
+- Automatic header parameter generation from OpenAPI schemas.
+- Request-body generation from the first documented media type.
+- Response schema selection for documented response content types.
+- Numeric sorting for expected response status selection.
+- CLI help/version text updated to 0.3.0.
 
 ### Improved
 
-- Expanded regression coverage for OpenAPI fixtures.
-- Package metadata prepared for distribution.
-- CI reliability and documentation.
+- API tests now cover path, query, header, and request-body inputs described by the contract.
+- Response validation uses the response definition matching the actual HTTP status when available.
 
-### Status
+## [0.2.0] - 2026-09-14
 
-This is an early pre-1.0 release. OpenAPI coverage and schema validation are still being expanded.
+- First public release.
+- OpenAPI 3.x JSON/YAML support.
+- Local `$ref` resolution.
+- Request generation.
+- Live API contract testing.
+- Semantic contract diffing and breaking-change detection.
+- JSON output and CI-friendly exit codes.
