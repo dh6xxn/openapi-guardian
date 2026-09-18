@@ -2,6 +2,24 @@
 
 All notable changes to OpenAPI Guardian are documented here.
 
+## [0.4.0] - 2026-09-18
+
+### Added
+
+- JSON Schema Draft 2020-12 response validation via Ajv 8.
+- Support for oneOf, anyOf, allOf, tuple prefixes, and richer schema sampling.
+- Nested local component reference support during schema validation.
+- JUnit test output for CI systems.
+- Path and method filtering for targeted API runs.
+- Per-request timeout controls.
+- Regression coverage for the expanded schema behavior.
+
+### Improved
+
+- Schema validation now reports all matching validation errors instead of stopping at the first simple mismatch.
+- Request generation follows local component schema references more consistently.
+- CLI help and version output updated to 0.4.0.
+
 ## [0.3.0] - 2026-09-18
 
 ### Added
@@ -24,7 +42,7 @@ All notable changes to OpenAPI Guardian are documented here.
 
 - First public release.
 - OpenAPI 3.x JSON/YAML support.
-- Local `$ref` resolution.
+- Local $ref resolution.
 - Request generation.
 - Live API contract testing.
 - Semantic contract diffing and breaking-change detection.
