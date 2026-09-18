@@ -11,7 +11,7 @@ function help() {
     '',
     'Commands:',
     '  guardian validate <spec.json|spec.yaml>',
-    '  guardian test <spec.json|spec.yaml> --base-url <url> [--path /users] [--method get] [--timeout 10000] [--format terminal|json|junit]',
+    '  guardian test <spec.json|spec.yaml> --base-url <url> [--path /users] [--method get] [--timeout 10000] [--cases 10] [--seed 42] [--negative] [--format terminal|json|junit]',
     '  guardian diff <old.json> <new.json> [--format terminal|json] [--fail-on breaking|any]',
   ].join(NL));
 }
@@ -54,7 +54,7 @@ try {
     const doc = await loadSpec(positional[0]);
     const base = arg('--base-url');
     if (!base) throw new Error('--base-url is required.');
-    const results = await testSpec(doc, base, { path: arg('--path'), method: arg('--method'), timeoutMs: Number(arg('--timeout', '10000')) });
+    const results = await testSpec(doc, base, { path: arg('--path'), method: arg('--method'), timeoutMs: Number(arg('--timeout', '10000')), negative: process.argv.includes('--negative'), cases: Number(arg('--cases', '1')), seed: Number(arg('--seed', '0')) });
     const format = arg('--format');
     if (format === 'json') console.log(JSON.stringify({ results }, null, 2));
     else if (format === 'junit') console.log(junit(results));
