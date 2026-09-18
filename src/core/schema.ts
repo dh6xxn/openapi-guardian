@@ -1,1 +1,68 @@
-import Ajv2020 from 'ajv/dist/2020.js';\n\nexport function sample(schema: any): any {\n  if (!schema) return undefined;\n  if (schema.example !== undefined) return schema.example;\n  if (schema.default !== undefined) return schema.default;\n  if (Array.isArray(schema.enum) && schema.enum.length) return schema.enum[0];\n  if (Array.isArray(schema.type)) {\n    const preferred = schema.type.find((t: string) => t !== 'null') ?? schema.type[0];\n    return sample({ ...schema, type: preferred });\n  }\n  if (schema.const !== undefined) return schema.const;\n  if (schema.oneOf?.length) return sample(schema.oneOf[0]);\n  if (schema.anyOf?.length) return sample(schema.anyOf[0]);\n  if (schema.allOf?.length) return Object.assign({}, ...schema.allOf.map((part: any) => sample(part)));\n  if (schema.type === 'object' || schema.properties) {\n    const out: Record<string, any> = {};\n    for (const [key, value] of Object.entries(schema.properties ?? {})) {\n      const sampled = sample(value);\n      if (sampled !== undefined) out[key] = sampled;\n    }\n    return out;\n  }\n  if (schema.type === 'array') {\n    if (schema.prefixItems?.length) return schema.prefixItems.map((item: any) => sample(item));\n    return [sample(schema.items ?? { type: 'string' })];\n  }\n  if (schema.type === 'integer' || schema.type === 'number') {\n    if (schema.minimum !== undefined) return schema.minimum;\n    if (schema.exclusiveMinimum !== undefined && typeof schema.exclusiveMinimum === 'number') return schema.exclusiveMinimum + 1;\n    return 1;\n  }\n  if (schema.type === 'boolean') return true;\n  return 'guardian-test';\n}\n\nfunction normalizeSchema(schema: any): any {\n  if (!schema || typeof schema !== 'object') return schema;\n  if (Array.isArray(schema)) return schema.map(normalizeSchema);\n  const out: Record<string, any> = {};\n  for (const [key, value] of Object.entries(schema)) {\n    if (key === '$ref' && typeof value === 'string' && value.startsWith('#/components/schemas/')) {\n      const name = value.slice('#/components/schemas/'.length).replace(/~1/g, '/').replace(/~0/g, '~');\n      out.$ref = '#/$defs/' + name;\n    } else {\n      out[key] = normalizeSchema(value);\n    }\n  }\n  return out;\n}\n\nexport function validateSchema(value: any, schema: any, location = 'response', doc?: any): string[] {\n  if (!schema) return [];\n  try {\n    const normalized = normalizeSchema(schema);\n    const defs = Object.fromEntries(Object.entries(doc?.components?.schemas ?? {}).map(([name, definition]) => [name, normalizeSchema(definition)]));\n    const root = { ...normalized, $defs: defs };\n    const ajv = new Ajv2020({ allErrors: true, strict: false });\n    const validate = ajv.compile(root);\n    if (validate(value)) return [];\n    return (validate.errors ?? []).map((error) => {\n      const path = error.instancePath ? location + error.instancePath.replaceAll('/', '.') : location;\n      return path + ': ' + (error.message ?? 'schema validation failed') + '.';\n    });\n  } catch (error) {\n    return [location + ': unable to compile schema (' + (error instanceof Error ? error.message : String(error)) + ').'];\n  }\n}
+import Ajv2020 from 'ajv/dist/2020.js';
+
+export function sample(schema: any): any {
+  if (!schema) return undefined;
+  if (schema.example !== undefined) return schema.example;
+  if (schema.default !== undefined) return schema.default;
+  if (Array.isArray(schema.enum) && schema.enum.length) return schema.enum[0];
+  if (Array.isArray(schema.type)) {
+    const preferred = schema.type.find((t: string) => t !== 'null') ?? schema.type[0];
+    return sample({ ...schema, type: preferred });
+  }
+  if (schema.const !== undefined) return schema.const;
+  if (schema.oneOf?.length) return sample(schema.oneOf[0]);
+  if (schema.anyOf?.length) return sample(schema.anyOf[0]);
+  if (schema.allOf?.length) return Object.assign({}, ...schema.allOf.map((part: any) => sample(part)));
+  if (schema.type === 'object' || schema.properties) {
+    const out: Record<string, any> = {};
+    for (const [key, value] of Object.entries(schema.properties ?? {})) {
+      const sampled = sample(value);
+      if (sampled !== undefined) out[key] = sampled;
+    }
+    return out;
+  }
+  if (schema.type === 'array') {
+    if (schema.prefixItems?.length) return schema.prefixItems.map((item: any) => sample(item));
+    return [sample(schema.items ?? { type: 'string' })];
+  }
+  if (schema.type === 'integer' || schema.type === 'number') {
+    if (schema.minimum !== undefined) return schema.minimum;
+    if (schema.exclusiveMinimum !== undefined && typeof schema.exclusiveMinimum === 'number') return schema.exclusiveMinimum + 1;
+    return 1;
+  }
+  if (schema.type === 'boolean') return true;
+  return 'guardian-test';
+}
+
+function normalizeSchema(schema: any): any {
+  if (!schema || typeof schema !== 'object') return schema;
+  if (Array.isArray(schema)) return schema.map(normalizeSchema);
+  const out: Record<string, any> = {};
+  for (const [key, value] of Object.entries(schema)) {
+    if (key === '$ref' && typeof value === 'string' && value.startsWith('#/components/schemas/')) {
+      const name = value.slice('#/components/schemas/'.length).replace(/~1/g, '/').replace(/~0/g, '~');
+      out.$ref = '#/$defs/' + name;
+    } else {
+      out[key] = normalizeSchema(value);
+    }
+  }
+  return out;
+}
+
+export function validateSchema(value: any, schema: any, location = 'response', doc?: any): string[] {
+  if (!schema) return [];
+  try {
+    const normalized = normalizeSchema(schema);
+    const defs = Object.fromEntries(Object.entries(doc?.components?.schemas ?? {}).map(([name, definition]) => [name, normalizeSchema(definition)]));
+    const root = { ...normalized, $defs: defs };
+    const ajv = new Ajv2020({ allErrors: true, strict: false });
+    const validate = ajv.compile(root);
+    if (validate(value)) return [];
+    return (validate.errors ?? []).map((error) => {
+      const path = error.instancePath ? location + error.instancePath.replaceAll('/', '.') : location;
+      return path + ': ' + (error.message ?? 'schema validation failed') + '.';
+    });
+  } catch (error) {
+    return [location + ': unable to compile schema (' + (error instanceof Error ? error.message : String(error)) + ').'];
+  }
+}
