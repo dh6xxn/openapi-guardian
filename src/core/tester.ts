@@ -3,6 +3,15 @@ import { sample, validateSchema } from './schema.js';
 
 const METHODS = ['get', 'post', 'put', 'patch', 'delete', 'options', 'head', 'trace'];
 
+export interface TestOptions {
+  path?: string;
+  method?: string;
+  timeoutMs?: number;
+  negative?: boolean;
+  cases?: number;
+  seed?: number;
+}
+
 function resolve(doc: OpenApiDocument, schema: any): any {
   if (schema?.$ref?.startsWith('#/components/schemas/')) {
     const name = schema.$ref.slice('#/components/schemas/'.length).replace(/~1/g, '/').replace(/~0/g, '~');
@@ -19,11 +28,15 @@ function sampleFromDoc(doc: OpenApiDocument, schema: any, seen = new Set<string>
   return sampleFromDoc(doc, resolved, new Set([...seen, schema.$ref]));
 }
 
+function schemaFromDoc(doc: OpenApiDocument, schema: any, seen = new Set<string>()): any {
+  if (!schema?.$ref) return schema;
+  if (!schema.$ref.startsWith('#/components/schemas/') || seen.has(schema.$ref)) return schema;
+  const resolved = resolve(doc, schema);
+  return schemaFromDoc(doc, resolved, new Set([...seen, schema.$ref]));
+}
+
 function expectedStatus(op: any): number | undefined {
-  return Object.keys(op.responses ?? {})
-    .filter((key) => /^\\d{3}$/.test(key))
-    .map(Number)
-    .sort((a, b) => a - b)[0];
+  return Object.keys(op.responses ?? {}).filter((key) => /^\d{3}$/.test(key)).map(Number).sort((a, b) => a - b)[0];
 }
 
 function parametersFor(item: any, op: any): any[] {
@@ -32,16 +45,18 @@ function parametersFor(item: any, op: any): any[] {
   return [...byKey.values()];
 }
 
-function replacePathParams(path: string, parameters: any[], doc: OpenApiDocument): string {
+function replacePathParams(path: string, parameters: any[], doc: OpenApiDocument, overrides = new Map<string, any>()): string {
   return path.replace(/\{([^}]+)\}/g, (_, name) => {
     const parameter = parameters.find((item) => item.in === 'path' && item.name === name);
-    return encodeURIComponent(String(sampleFromDoc(doc, parameter?.schema ?? { type: 'string' })));
+    const value = overrides.has('path:' + name) ? overrides.get('path:' + name) : sampleFromDoc(doc, parameter?.schema ?? { type: 'string' });
+    return encodeURIComponent(String(value));
   });
 }
 
-function addQueryAndHeaders(url: URL, parameters: any[], headers: Record<string, string>, doc: OpenApiDocument) {
+function addQueryAndHeaders(url: URL, parameters: any[], headers: Record<string, string>, doc: OpenApiDocument, overrides = new Map<string, any>()) {
   for (const parameter of parameters) {
-    const value = sampleFromDoc(doc, parameter.schema ?? { type: 'string' });
+    const key = parameter.in + ':' + parameter.name;
+    const value = overrides.has(key) ? overrides.get(key) : sampleFromDoc(doc, parameter.schema ?? { type: 'string' });
     if (value === undefined) continue;
     if (parameter.in === 'query') url.searchParams.set(parameter.name, String(value));
     if (parameter.in === 'header') headers[parameter.name] = String(value);
@@ -54,42 +69,110 @@ function firstJsonSchema(content: any): any {
   return json?.schema;
 }
 
-export async function testSpec(doc: OpenApiDocument, baseUrl: string, options: { path?: string; method?: string; timeoutMs?: number } = {}): Promise<OperationResult[]> {
+function invalidValue(schema: any, valid: any, variant: number): any {
+  const type = Array.isArray(schema?.type) ? schema.type.find((t: string) => t !== 'null') : schema?.type;
+  if (variant % 4 === 0) {
+    if (type === 'string') return 12345;
+    if (type === 'integer' || type === 'number') return 'not-a-number';
+    if (type === 'boolean') return 'not-a-boolean';
+    if (type === 'array') return {};
+    if (type === 'object') return 'not-an-object';
+  }
+  if (schema?.enum?.length) return '__guardian_invalid_enum__';
+  if (schema?.minLength !== undefined) return '';
+  if (schema?.minimum !== undefined) return schema.minimum - 1;
+  if (schema?.exclusiveMinimum !== undefined && typeof schema.exclusiveMinimum === 'number') return schema.exclusiveMinimum;
+  if (schema?.maxLength !== undefined) return 'x'.repeat(Number(schema.maxLength) + 1);
+  if (schema?.maximum !== undefined) return schema.maximum + 1;
+  if (schema?.exclusiveMaximum !== undefined && typeof schema.exclusiveMaximum === 'number') return schema.exclusiveMaximum;
+  if (type === 'array') return [];
+  return valid;
+}
+
+function negativeBody(doc: OpenApiDocument, schema: any, variant: number): any {
+  const resolved = schemaFromDoc(doc, schema);
+  if (!resolved) return undefined;
+  if (resolved.type === 'object' || resolved.properties) {
+    const out = sampleFromDoc(doc, resolved);
+    const required = [...(resolved.required ?? [])];
+    if (variant % 2 === 0 && required.length) {
+      delete out[required[0]];
+      return out;
+    }
+    const keys = Object.keys(resolved.properties ?? {});
+    if (keys.length) {
+      const key = keys[variant % keys.length];
+      out[key] = invalidValue(schemaFromDoc(doc, resolved.properties[key]) ?? {}, out[key], variant);
+    }
+    return out;
+  }
+  return invalidValue(resolved, sampleFromDoc(doc, resolved), variant);
+}
+
+function negativeParameterValue(doc: OpenApiDocument, parameter: any, variant: number): any {
+  const schema = schemaFromDoc(doc, parameter.schema ?? { type: 'string' });
+  if (variant % 2 === 0 && parameter.required) return undefined;
+  return invalidValue(schema, sampleFromDoc(doc, schema), variant);
+}
+
+function acceptedErrorStatus(status: number): boolean {
+  return status >= 400 && status < 500;
+}
+
+async function execute(doc: OpenApiDocument, path: string, method: string, op: any, baseUrl: string, options: TestOptions, variant = 0, negative = false): Promise<OperationResult> {
+  const parameters = parametersFor({ parameters: op.__pathParameters ?? [] }, op);
+  const overrides = new Map<string, any>();
+  if (negative && parameters.length) {
+    const parameter = parameters[variant % parameters.length];
+    overrides.set(parameter.in + ':' + parameter.name, negativeParameterValue(doc, parameter, variant));
+  }
+  const target = new URL(replacePathParams(path, parameters, doc, overrides), baseUrl.endsWith('/') ? baseUrl : baseUrl + '/');
+  const headers: Record<string, string> = { accept: 'application/json' };
+  addQueryAndHeaders(target, parameters, headers, doc, overrides);
+  const init: RequestInit = { method: method.toUpperCase(), headers, signal: options.timeoutMs ? AbortSignal.timeout(options.timeoutMs) : undefined };
+  const bodySchema = firstJsonSchema(op.requestBody?.content);
+  if (bodySchema && !['GET', 'HEAD'].includes(method.toUpperCase())) {
+    headers['content-type'] = 'application/json';
+    init.body = JSON.stringify(negative ? negativeBody(doc, bodySchema, variant) : sampleFromDoc(doc, bodySchema));
+  }
+  const errors: string[] = [];
+  try {
+    const response = await fetch(target, init);
+    if (negative) {
+      if (!acceptedErrorStatus(response.status)) errors.push('Negative test expected a 4xx response, received ' + response.status + '.');
+    } else {
+      const expected = expectedStatus(op);
+      if (expected && response.status !== expected) errors.push('Expected status ' + expected + ', received ' + response.status + '.');
+      const responseDef = op.responses?.[String(response.status)] ?? op.responses?.default;
+      const responseSchema = firstJsonSchema(responseDef?.content);
+      if (responseSchema && response.status >= 200 && response.status < 300) {
+        const text = await response.text();
+        let body: any;
+        try { body = text ? JSON.parse(text) : undefined; } catch { errors.push('Response body is not valid JSON.'); }
+        if (body !== undefined) errors.push(...validateSchema(body, responseSchema, 'response', doc));
+      }
+      return { method: method.toUpperCase(), path, status: errors.length ? 'failed' : 'passed', statusCode: response.status, expectedStatus: expected, errors };
+    }
+    return { method: method.toUpperCase(), path, status: errors.length ? 'failed' : 'passed', statusCode: response.status, expectedStatus: undefined, errors };
+  } catch (e) {
+    return { method: method.toUpperCase(), path, status: 'failed', errors: [e instanceof Error ? e.message : String(e)] };
+  }
+}
+
+export async function testSpec(doc: OpenApiDocument, baseUrl: string, options: TestOptions = {}): Promise<OperationResult[]> {
   const results: OperationResult[] = [];
   const methodFilter = options.method?.toLowerCase();
+  const caseCount = Math.max(1, Math.min(options.cases ?? 1, 1000));
+  let variant = options.seed ?? 0;
   for (const [path, item] of Object.entries(doc.paths ?? {})) {
     if (options.path && path !== options.path) continue;
     for (const method of METHODS) {
       if (methodFilter && method !== methodFilter) continue;
-      const op: any = (item as any)?.[method];
-      if (!op) continue;
-      const parameters = parametersFor(item, op);
-      const target = new URL(replacePathParams(path, parameters, doc), baseUrl.endsWith('/') ? baseUrl : baseUrl + '/');
-      const headers: Record<string, string> = { accept: 'application/json' };
-      addQueryAndHeaders(target, parameters, headers, doc);
-      const init: RequestInit = { method: method.toUpperCase(), headers, signal: options.timeoutMs ? AbortSignal.timeout(options.timeoutMs) : undefined };
-      const bodySchema = firstJsonSchema(op.requestBody?.content);
-      if (bodySchema && !['GET', 'HEAD'].includes(method.toUpperCase())) {
-        headers['content-type'] = 'application/json';
-        init.body = JSON.stringify(sampleFromDoc(doc, bodySchema));
-      }
-      const errors: string[] = [];
-      const expected = expectedStatus(op);
-      try {
-        const response = await fetch(target, init);
-        if (expected && response.status !== expected) errors.push('Expected status ' + expected + ', received ' + response.status + '.');
-        const responseDef = op.responses?.[String(response.status)] ?? op.responses?.default;
-        const responseSchema = firstJsonSchema(responseDef?.content);
-        if (responseSchema && response.status >= 200 && response.status < 300) {
-          const text = await response.text();
-          let body: any;
-          try { body = text ? JSON.parse(text) : undefined; } catch { errors.push('Response body is not valid JSON.'); }
-          if (body !== undefined) errors.push(...validateSchema(body, responseSchema, 'response', doc));
-        }
-        results.push({ method: method.toUpperCase(), path, status: errors.length ? 'failed' : 'passed', statusCode: response.status, expectedStatus: expected, errors });
-      } catch (e) {
-        results.push({ method: method.toUpperCase(), path, status: 'failed', expectedStatus: expected, errors: [e instanceof Error ? e.message : String(e)] });
-      }
+      const originalOp: any = (item as any)?.[method];
+      if (!originalOp) continue;
+      const op = { ...originalOp, __pathParameters: (item as any)?.parameters ?? [] };
+      const count = options.negative ? caseCount : 1;
+      for (let i = 0; i < count; i++) results.push(await execute(doc, path, method, op, baseUrl, options, variant++, Boolean(options.negative)));
     }
   }
   return results;
