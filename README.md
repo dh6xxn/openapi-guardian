@@ -9,7 +9,7 @@ A TypeScript-first CLI for validating OpenAPI contracts, testing live API implem
 [![CI](https://github.com/dh6xxn/openapi-guardian/actions/workflows/ci.yml/badge.svg)](https://github.com/dh6xxn/openapi-guardian/actions/workflows/ci.yml)
 [![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 </div>
@@ -51,11 +51,13 @@ Guardian turns that contract into executable developer checks:
 - ✅ Response status and JSON schema checks
 - 🔀 Semantic contract diffs
 - 🚨 Breaking-change detection for endpoints, required fields, types, bounds, and enum removals
-- 📦 JSON output for automation
+- 📦 JSON and JUnit output for automation
+- 🎯 Path/method filtering for targeted test runs
+- ⏱️ Per-request timeout controls
 - 🚦 CI-friendly exit codes
 - 🧱 Small TypeScript core that can evolve into a reusable library
 
-> **Status: early-stage, functional developer tool · v0.3.0.** Guardian now covers more of the documented request surface, but it is not positioned as a replacement for mature API testing/fuzzing platforms yet.
+> **Status: early-stage, functional developer tool · v0.4.0.** Guardian now uses JSON Schema 2020-12 validation for response contracts and supports CI-oriented reporting and targeted test execution. It is still not positioned as a replacement for mature API testing/fuzzing platforms.
 
 ---
 
@@ -91,7 +93,7 @@ node dist/cli.js validate examples/sample.yaml
 node dist/cli.js test openapi.yaml --base-url http://localhost:3000
 ```
 
-Guardian discovers the documented operations, derives representative requests from their parameters and request bodies, sends them to the running API, checks the documented response status, and validates JSON responses when schemas are present.
+Guardian discovers the documented operations, derives representative requests from their parameters and request bodies, sends them to the running API, checks the documented response status, and validates JSON responses with JSON Schema 2020-12 semantics when schemas are present.
 
 ### Detect breaking changes
 
@@ -198,12 +200,15 @@ The current CI suite verifies typechecking, unit tests, OpenAPI validation, sema
 
 ### v0.4 — CI-grade contract testing
 
-- [ ] Full JSON Schema 2020-12 validation
-- [ ] Robust recursive `$ref` graphs
-- [ ] JUnit reports
-- [ ] Config file (`guardian.config.ts`)
+- [x] JSON Schema 2020-12 response validation via Ajv
+- [x] Nested local component reference support during schema validation
+- [x] JUnit test reports
+- [x] Path/method filtering
+- [x] Per-request timeouts
+- [x] Expanded schema sampling (`oneOf`, `anyOf`, `allOf`, tuple prefixes)
 - [ ] Dedicated GitHub Action
 - [ ] Parallel execution
+- [ ] Configuration file
 
 ### v0.5 — Advanced API testing
 
