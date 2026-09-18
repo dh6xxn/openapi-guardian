@@ -1,1 +1,96 @@
-import type { OpenApiDocument, OperationResult } from './types.js';\nimport { sample, validateSchema } from './schema.js';\n\nconst METHODS = ['get', 'post', 'put', 'patch', 'delete', 'options', 'head', 'trace'];\n\nfunction resolve(doc: OpenApiDocument, schema: any): any {\n  if (schema?.$ref?.startsWith('#/components/schemas/')) {\n    const name = schema.$ref.slice('#/components/schemas/'.length).replace(/~1/g, '/').replace(/~0/g, '~');\n    return doc.components?.schemas?.[name];\n  }\n  return schema;\n}\n\nfunction sampleFromDoc(doc: OpenApiDocument, schema: any, seen = new Set<string>()): any {\n  if (!schema?.$ref) return sample(schema);\n  if (!schema.$ref.startsWith('#/components/schemas/')) return sample(schema);\n  if (seen.has(schema.$ref)) return {};\n  const resolved = resolve(doc, schema);\n  return sampleFromDoc(doc, resolved, new Set([...seen, schema.$ref]));\n}\n\nfunction expectedStatus(op: any): number | undefined {\n  return Object.keys(op.responses ?? {})\n    .filter((key) => /^\\d{3}$/.test(key))\n    .map(Number)\n    .sort((a, b) => a - b)[0];\n}\n\nfunction parametersFor(item: any, op: any): any[] {\n  const byKey = new Map<string, any>();\n  for (const parameter of [...(item?.parameters ?? []), ...(op?.parameters ?? [])]) byKey.set(parameter.in + ':' + parameter.name, parameter);\n  return [...byKey.values()];\n}\n\nfunction replacePathParams(path: string, parameters: any[], doc: OpenApiDocument): string {\n  return path.replace(/\{([^}]+)\}/g, (_, name) => {\n    const parameter = parameters.find((item) => item.in === 'path' && item.name === name);\n    return encodeURIComponent(String(sampleFromDoc(doc, parameter?.schema ?? { type: 'string' })));\n  });\n}\n\nfunction addQueryAndHeaders(url: URL, parameters: any[], headers: Record<string, string>, doc: OpenApiDocument) {\n  for (const parameter of parameters) {\n    const value = sampleFromDoc(doc, parameter.schema ?? { type: 'string' });\n    if (value === undefined) continue;\n    if (parameter.in === 'query') url.searchParams.set(parameter.name, String(value));\n    if (parameter.in === 'header') headers[parameter.name] = String(value);\n  }\n}\n\nfunction firstJsonSchema(content: any): any {\n  if (!content || typeof content !== 'object') return undefined;\n  const json = content['application/json'] ?? content[Object.keys(content)[0]];\n  return json?.schema;\n}\n\nexport async function testSpec(doc: OpenApiDocument, baseUrl: string, options: { path?: string; method?: string; timeoutMs?: number } = {}): Promise<OperationResult[]> {\n  const results: OperationResult[] = [];\n  const methodFilter = options.method?.toLowerCase();\n  for (const [path, item] of Object.entries(doc.paths ?? {})) {\n    if (options.path && path !== options.path) continue;\n    for (const method of METHODS) {\n      if (methodFilter && method !== methodFilter) continue;\n      const op: any = (item as any)?.[method];\n      if (!op) continue;\n      const parameters = parametersFor(item, op);\n      const target = new URL(replacePathParams(path, parameters, doc), baseUrl.endsWith('/') ? baseUrl : baseUrl + '/');\n      const headers: Record<string, string> = { accept: 'application/json' };\n      addQueryAndHeaders(target, parameters, headers, doc);\n      const init: RequestInit = { method: method.toUpperCase(), headers, signal: options.timeoutMs ? AbortSignal.timeout(options.timeoutMs) : undefined };\n      const bodySchema = firstJsonSchema(op.requestBody?.content);\n      if (bodySchema && !['GET', 'HEAD'].includes(method.toUpperCase())) {\n        headers['content-type'] = 'application/json';\n        init.body = JSON.stringify(sampleFromDoc(doc, bodySchema));\n      }\n      const errors: string[] = [];\n      const expected = expectedStatus(op);\n      try {\n        const response = await fetch(target, init);\n        if (expected && response.status !== expected) errors.push('Expected status ' + expected + ', received ' + response.status + '.');\n        const responseDef = op.responses?.[String(response.status)] ?? op.responses?.default;\n        const responseSchema = firstJsonSchema(responseDef?.content);\n        if (responseSchema && response.status >= 200 && response.status < 300) {\n          const text = await response.text();\n          let body: any;\n          try { body = text ? JSON.parse(text) : undefined; } catch { errors.push('Response body is not valid JSON.'); }\n          if (body !== undefined) errors.push(...validateSchema(body, responseSchema, 'response', doc));\n        }\n        results.push({ method: method.toUpperCase(), path, status: errors.length ? 'failed' : 'passed', statusCode: response.status, expectedStatus: expected, errors });\n      } catch (e) {\n        results.push({ method: method.toUpperCase(), path, status: 'failed', expectedStatus: expected, errors: [e instanceof Error ? e.message : String(e)] });\n      }\n    }\n  }\n  return results;\n}
+import type { OpenApiDocument, OperationResult } from './types.js';
+import { sample, validateSchema } from './schema.js';
+
+const METHODS = ['get', 'post', 'put', 'patch', 'delete', 'options', 'head', 'trace'];
+
+function resolve(doc: OpenApiDocument, schema: any): any {
+  if (schema?.$ref?.startsWith('#/components/schemas/')) {
+    const name = schema.$ref.slice('#/components/schemas/'.length).replace(/~1/g, '/').replace(/~0/g, '~');
+    return doc.components?.schemas?.[name];
+  }
+  return schema;
+}
+
+function sampleFromDoc(doc: OpenApiDocument, schema: any, seen = new Set<string>()): any {
+  if (!schema?.$ref) return sample(schema);
+  if (!schema.$ref.startsWith('#/components/schemas/')) return sample(schema);
+  if (seen.has(schema.$ref)) return {};
+  const resolved = resolve(doc, schema);
+  return sampleFromDoc(doc, resolved, new Set([...seen, schema.$ref]));
+}
+
+function expectedStatus(op: any): number | undefined {
+  return Object.keys(op.responses ?? {})
+    .filter((key) => /^\\d{3}$/.test(key))
+    .map(Number)
+    .sort((a, b) => a - b)[0];
+}
+
+function parametersFor(item: any, op: any): any[] {
+  const byKey = new Map<string, any>();
+  for (const parameter of [...(item?.parameters ?? []), ...(op?.parameters ?? [])]) byKey.set(parameter.in + ':' + parameter.name, parameter);
+  return [...byKey.values()];
+}
+
+function replacePathParams(path: string, parameters: any[], doc: OpenApiDocument): string {
+  return path.replace(/\{([^}]+)\}/g, (_, name) => {
+    const parameter = parameters.find((item) => item.in === 'path' && item.name === name);
+    return encodeURIComponent(String(sampleFromDoc(doc, parameter?.schema ?? { type: 'string' })));
+  });
+}
+
+function addQueryAndHeaders(url: URL, parameters: any[], headers: Record<string, string>, doc: OpenApiDocument) {
+  for (const parameter of parameters) {
+    const value = sampleFromDoc(doc, parameter.schema ?? { type: 'string' });
+    if (value === undefined) continue;
+    if (parameter.in === 'query') url.searchParams.set(parameter.name, String(value));
+    if (parameter.in === 'header') headers[parameter.name] = String(value);
+  }
+}
+
+function firstJsonSchema(content: any): any {
+  if (!content || typeof content !== 'object') return undefined;
+  const json = content['application/json'] ?? content[Object.keys(content)[0]];
+  return json?.schema;
+}
+
+export async function testSpec(doc: OpenApiDocument, baseUrl: string, options: { path?: string; method?: string; timeoutMs?: number } = {}): Promise<OperationResult[]> {
+  const results: OperationResult[] = [];
+  const methodFilter = options.method?.toLowerCase();
+  for (const [path, item] of Object.entries(doc.paths ?? {})) {
+    if (options.path && path !== options.path) continue;
+    for (const method of METHODS) {
+      if (methodFilter && method !== methodFilter) continue;
+      const op: any = (item as any)?.[method];
+      if (!op) continue;
+      const parameters = parametersFor(item, op);
+      const target = new URL(replacePathParams(path, parameters, doc), baseUrl.endsWith('/') ? baseUrl : baseUrl + '/');
+      const headers: Record<string, string> = { accept: 'application/json' };
+      addQueryAndHeaders(target, parameters, headers, doc);
+      const init: RequestInit = { method: method.toUpperCase(), headers, signal: options.timeoutMs ? AbortSignal.timeout(options.timeoutMs) : undefined };
+      const bodySchema = firstJsonSchema(op.requestBody?.content);
+      if (bodySchema && !['GET', 'HEAD'].includes(method.toUpperCase())) {
+        headers['content-type'] = 'application/json';
+        init.body = JSON.stringify(sampleFromDoc(doc, bodySchema));
+      }
+      const errors: string[] = [];
+      const expected = expectedStatus(op);
+      try {
+        const response = await fetch(target, init);
+        if (expected && response.status !== expected) errors.push('Expected status ' + expected + ', received ' + response.status + '.');
+        const responseDef = op.responses?.[String(response.status)] ?? op.responses?.default;
+        const responseSchema = firstJsonSchema(responseDef?.content);
+        if (responseSchema && response.status >= 200 && response.status < 300) {
+          const text = await response.text();
+          let body: any;
+          try { body = text ? JSON.parse(text) : undefined; } catch { errors.push('Response body is not valid JSON.'); }
+          if (body !== undefined) errors.push(...validateSchema(body, responseSchema, 'response', doc));
+        }
+        results.push({ method: method.toUpperCase(), path, status: errors.length ? 'failed' : 'passed', statusCode: response.status, expectedStatus: expected, errors });
+      } catch (e) {
+        results.push({ method: method.toUpperCase(), path, status: 'failed', expectedStatus: expected, errors: [e instanceof Error ? e.message : String(e)] });
+      }
+    }
+  }
+  return results;
+}
