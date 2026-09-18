@@ -1,6 +1,6 @@
 {
   "name": "@dh6xxn/openapi-guardian",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "TypeScript-first OpenAPI contract testing and semantic breaking-change detection for APIs.",
   "type": "module",
   "bin": { "guardian": "dist/cli.js" },
