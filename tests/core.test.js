@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { sample, validateSchema } from '../dist/core/schema.js';
 import { diffSpecs } from '../dist/core/diff.js';
 import { loadSpec, resolveLocalRef, validateBasicSpec } from '../dist/core/spec.js';
+import { testSpec } from '../dist/core/tester.js';
+import { createServer } from 'node:http';
 
 const base = { openapi: '3.0.3', info: { title: 'Test API', version: '1.0.0' }, paths: {} };
 
@@ -48,4 +50,59 @@ test('loads YAML OpenAPI documents', async () => {
   const spec = await loadSpec('examples/sample.yaml');
   assert.equal(spec.openapi, '3.0.3');
   assert.equal(spec.info.title, 'Guardian YAML Fixture');
+});
+
+test('negative tests generate invalid inputs and require 4xx responses', async () => {
+  const server = createServer((req, res) => {
+    if (req.method === 'POST' && req.url === '/users') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const value = JSON.parse(body || '{}');
+          if (typeof value.name !== 'string' || value.name.length < 3 || value.age < 1) {
+            res.writeHead(400, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ error: 'invalid request' }));
+          } else {
+            res.writeHead(201, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ id: 1, name: value.name, age: value.age }));
+          }
+        } catch {
+          res.writeHead(400);
+          res.end();
+        }
+      });
+      return;
+    }
+    res.writeHead(404);
+    res.end();
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  const port = typeof address === 'object' && address ? address.port : 0;
+  const doc = {
+    ...base,
+    paths: {
+      '/users': {
+        post: {
+          requestBody: { content: { 'application/json': { schema: {
+            type: 'object',
+            required: ['name', 'age'],
+            properties: { name: { type: 'string', minLength: 3 }, age: { type: 'integer', minimum: 1 } }
+          } } } },
+          responses: {
+            '201': { content: { 'application/json': { schema: { type: 'object' } } } }
+          }
+        }
+      }
+    }
+  };
+  try {
+    const results = await testSpec(doc, 'http://127.0.0.1:' + port, { negative: true, cases: 4, seed: 42, timeoutMs: 2000 });
+    assert.equal(results.length, 4);
+    assert.equal(results.every((result) => result.status === 'passed'), true);
+    assert.equal(results.every((result) => result.statusCode === 400), true);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
 });
