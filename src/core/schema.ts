@@ -1,4 +1,5 @@
-import Ajv2020 from 'ajv/dist/2020.js';
+import * as Ajv2020Module from 'ajv/dist/2020.js';
+const Ajv2020: any = (Ajv2020Module as any).default;
 
 export function sample(schema: any): any {
   if (!schema) return undefined;
@@ -58,7 +59,7 @@ export function validateSchema(value: any, schema: any, location = 'response', d
     const ajv = new Ajv2020({ allErrors: true, strict: false });
     const validate = ajv.compile(root);
     if (validate(value)) return [];
-    return (validate.errors ?? []).map((error) => {
+    return (validate.errors ?? []).map((error: any) => {
       const path = error.instancePath ? location + error.instancePath.replaceAll('/', '.') : location;
       return path + ': ' + (error.message ?? 'schema validation failed') + '.';
     });
