@@ -115,6 +115,51 @@ function negativeParameterValue(doc: OpenApiDocument, parameter: any, variant: n
   return invalidValue(schema, sampleFromDoc(doc, schema), variant);
 }
 
+
+
+function hashSeed(seed: number, value: number): number {
+  let x = (seed ^ value) >>> 0;
+  x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+  return x >>> 0;
+}
+
+function mutateValue(schema: any, valid: any, seed: number): any {
+  const type = Array.isArray(schema?.type) ? schema.type.find((t: string) => t !== 'null') : schema?.type;
+  const mode = hashSeed(seed, 17) % 8;
+  if (schema?.enum?.length) return '__guardian_invalid_enum__';
+  if (mode === 0) {
+    if (type === 'string') return 12345;
+    if (type === 'integer' || type === 'number') return 'guardian-invalid-number';
+    if (type === 'boolean') return 'guardian-invalid-boolean';
+    if (type === 'array') return {};
+    if (type === 'object') return 'guardian-invalid-object';
+  }
+  if (mode === 1 && schema?.minimum !== undefined) return schema.minimum - 1;
+  if (mode === 2 && schema?.maximum !== undefined) return schema.maximum + 1;
+  if (mode === 3 && schema?.minLength !== undefined) return '';
+  if (mode === 4 && schema?.maxLength !== undefined) return 'x'.repeat(Number(schema.maxLength) + 1);
+  if (type === 'string') return String(valid ?? '') + '\u0000';
+  if (type === 'integer' || type === 'number') return typeof valid === 'number' ? valid + 1.5 : 'guardian-invalid-number';
+  if (type === 'boolean') return !valid;
+  if (type === 'array') return 'guardian-invalid-array';
+  return valid;
+}
+
+function fuzzBody(doc: OpenApiDocument, schema: any, seed: number): any {
+  const resolved = schemaFromDoc(doc, schema);
+  if (!resolved) return undefined;
+  if (resolved.type === 'object' || resolved.properties) {
+    const out = sampleFromDoc(doc, resolved);
+    const keys = Object.keys(resolved.properties ?? {});
+    if (!keys.length) return 'guardian-invalid-object';
+    const key = keys[hashSeed(seed, 23) % keys.length];
+    out[key] = mutateValue(schemaFromDoc(doc, resolved.properties[key]) ?? {}, out[key], seed);
+    if (seed % 5 === 0 && Array.isArray(resolved.required) && resolved.required.length) delete out[resolved.required[0]];
+    return out;
+  }
+  return mutateValue(resolved, sampleFromDoc(doc, resolved), seed);
+}
+
 function acceptedErrorStatus(status: number): boolean {
   return status >= 400 && status < 500;
 }
