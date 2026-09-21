@@ -106,3 +106,41 @@ test('negative tests generate invalid inputs and require 4xx responses', async (
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+
+test('fuzz mutations are deterministic for the same seed', async () => {
+  const server = createServer((req, res) => {
+    if (req.method === 'POST' && req.url === '/users') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', () => {
+        const value = JSON.parse(body || '{}');
+        const valid = typeof value.name === 'string' && value.name.length >= 3 && Number.isInteger(value.age) && value.age >= 1 && value.age <= 100;
+        res.writeHead(valid ? 201 : 400, { 'content-type': 'application/json' });
+        res.end(JSON.stringify(valid ? { id: 1 } : { error: 'invalid' }));
+      });
+    } else { res.writeHead(404); res.end(); }
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  const port = typeof address === 'object' && address ? address.port : 0;
+  const doc = {
+    ...base,
+    paths: { '/users': { post: {
+      requestBody: { content: { 'application/json': { schema: {
+        type: 'object', required: ['name', 'age'],
+        properties: { name: { type: 'string', minLength: 3, maxLength: 20 }, age: { type: 'integer', minimum: 1, maximum: 100 } }
+      } } } },
+      responses: { '201': { content: { 'application/json': { schema: { type: 'object' } } } } }
+    } } }
+  };
+  try {
+    const a = await testSpec(doc, 'http://127.0.0.1:' + port, { negative: true, cases: 12, seed: 123, timeoutMs: 2000 });
+    const b = await testSpec(doc, 'http://127.0.0.1:' + port, { negative: true, cases: 12, seed: 123, timeoutMs: 2000 });
+    assert.deepEqual(a.map((x) => ({ status: x.status, statusCode: x.statusCode, errors: x.errors })), b.map((x) => ({ status: x.status, statusCode: x.statusCode, errors: x.errors })));
+    assert.equal(a.length, 12);
+    assert.equal(a.every((x) => x.status === 'passed'), true);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
