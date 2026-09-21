@@ -9,7 +9,7 @@ A TypeScript-first CLI for validating OpenAPI contracts, testing live API implem
 [![CI](https://github.com/dh6xxn/openapi-guardian/actions/workflows/ci.yml/badge.svg)](https://github.com/dh6xxn/openapi-guardian/actions/workflows/ci.yml)
 [![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 </div>
@@ -56,10 +56,11 @@ Guardian turns that contract into executable developer checks:
 - ⏱️ Per-request timeout controls
 - 🧨 Negative and boundary input generation
 - 🎲 Deterministic multi-case runs with seeds
+- 🧬 Schema-guided fuzz mutations
 - 🚦 CI-friendly exit codes
 - 🧱 Small TypeScript core that can evolve into a reusable library
 
-> **Status: early-stage, functional developer tool · v0.5.0.** Guardian now uses JSON Schema 2020-12 validation for response contracts and supports CI-oriented reporting and targeted test execution. It is still not positioned as a replacement for mature API testing/fuzzing platforms.
+> **Status: early-stage, functional developer tool · v0.6.0.** Guardian now uses JSON Schema 2020-12 validation for response contracts and supports CI-oriented reporting and targeted test execution. It is still not positioned as a replacement for mature API testing/fuzzing platforms.
 
 ---
 
@@ -96,6 +97,9 @@ node dist/cli.js test openapi.yaml --base-url http://localhost:3000
 
 # Generate negative/boundary cases
 node dist/cli.js test openapi.yaml --base-url http://localhost:3000 --negative --cases 25 --seed 42
+
+# Fuzz the API with reproducible schema mutations
+node dist/cli.js fuzz openapi.yaml --base-url http://localhost:3000 --cases 100 --seed 42
 ```
 
 Guardian discovers the documented operations, derives representative requests from their parameters and request bodies, sends them to the running API, checks the documented response status, and validates JSON responses with JSON Schema 2020-12 semantics when schemas are present.
@@ -220,11 +224,25 @@ The current CI suite verifies typechecking, unit tests, OpenAPI validation, sema
 - [x] Negative contract tests
 - [x] Boundary and invalid-input generation
 - [x] Deterministic multi-case generation with seeds
-- [ ] Property-based / fuzz testing
+
+### v0.6 — Property-based / fuzz testing
+
+- [x] Schema-guided request mutations
+- [x] Dedicated `guardian fuzz` command
+- [x] Reproducible seeds
+- [x] Multi-case fuzz runs
+- [x] Regression coverage for deterministic fuzz generation
+- [ ] Stateful API workflows
 - [ ] Stateful API workflows
 - [ ] Authentication/security schemes
 
 ---
+
+## Fuzzing model
+
+Guardian's fuzz mode starts from the OpenAPI schema and mutates generated valid values into contract-invalid inputs. Mutations include wrong primitive types, invalid enum values, numeric boundary violations, string-length violations, array/object type violations, and missing required properties. Runs are deterministic when a seed is supplied, making failures reproducible.
+
+This is schema-guided fuzzing, not unrestricted random byte fuzzing. The goal is to find implementation/contract mismatches that are meaningful to API developers.
 
 ## How Guardian fits in
 
