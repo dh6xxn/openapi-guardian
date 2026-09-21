@@ -26,3 +26,5 @@ jobs:
         run: node dist/cli.js test examples/jsonplaceholder.yaml --base-url https://jsonplaceholder.typicode.com --path /posts/1 --method get --format junit > guardian-results.xml
       - name: Verify JUnit report
         run: grep -q '<testsuite' guardian-results.xml
+      - name: Run schema-guided fuzz smoke test
+        run: node dist/cli.js fuzz examples/jsonplaceholder.yaml --base-url https://jsonplaceholder.typicode.com --path /posts/1 --method get --cases 5 --seed 42
