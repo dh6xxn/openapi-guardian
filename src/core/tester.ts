@@ -178,7 +178,7 @@ async function execute(doc: OpenApiDocument, path: string, method: string, op: a
   const bodySchema = firstJsonSchema(op.requestBody?.content);
   if (bodySchema && !['GET', 'HEAD'].includes(method.toUpperCase())) {
     headers['content-type'] = 'application/json';
-    init.body = JSON.stringify(negative ? negativeBody(doc, bodySchema, variant) : sampleFromDoc(doc, bodySchema));
+    init.body = JSON.stringify(negative ? fuzzBody(doc, bodySchema, variant) : sampleFromDoc(doc, bodySchema));
   }
   const errors: string[] = [];
   try {
